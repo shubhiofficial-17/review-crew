@@ -1,0 +1,32 @@
+name: review-crew
+description: Multi-agent LLM code review that posts one review with inline comments.
+branding: { icon: eye, color: blue }
+inputs:
+  anthropic-api-key:
+    description: Anthropic API key
+    required: true
+  github-token:
+    description: Token with pull-requests:write
+    default: ${{ github.token }}
+  agents:
+    description: Comma-separated specialists
+    default: security,correctness,tests,performance
+  model:
+    default: claude-sonnet-5-5
+  max-comments:
+    default: "12"
+runs:
+  using: composite
+  steps:
+    - uses: actions/setup-python@v5
+      with: { python-version: "3.12" }
+    - shell: bash
+      run: pip install --quiet "${{ github.action_path }}"
+    - shell: bash
+      env:
+        ANTHROPIC_API_KEY: ${{ inputs.anthropic-api-key }}
+        GITHUB_TOKEN: ${{ inputs.github-token }}
+      run: >
+        review-crew pr "${{ github.repository }}" "${{ github.event.pull_request.number }}" --post
+        --agents "${{ inputs.agents }}" --model "${{ inputs.model }}" --max-comments "${{ inputs.max-comments }}"
+        --repo-dir "${{ github.workspace }}"
